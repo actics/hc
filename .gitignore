@@ -1,0 +1,12 @@
+*~
+*.swp
+*.o
+*.mod
+*.mod.c
+*.cmd
+*.order
+*.ko
+*.symvers
+*.com
+*.exe
+
