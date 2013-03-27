@@ -190,7 +190,7 @@ remove_argumet_label:
 # основная метка выхода
 exit:
     movb  $DOS_EXIT,   %ah
-    movb  $0x00, %al
+    movb  $SUCCESS,    %al
     int   $DOS_SYSCALL
 
 

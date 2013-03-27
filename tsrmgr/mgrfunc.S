@@ -4,6 +4,10 @@
 # INPUT:  NONE
 # OUTPUT: NONE
 install_resident:
+    # Удаляем переменные среды
+    movw  %cs:(0x2c), %es
+    movb  $DOS_FREE_MEMORY, %ah
+    int   $DOS_SYSCALL
 
     # узнаем адрес старого обработчика
     movb  $DOS_GET_IRQ_HANDLER, %ah
@@ -71,13 +75,6 @@ check_resident:
 # INPUT:  NONE
 # OUTPUT: NONE
 remove_resident:
-    push  %ax
-    push  %bx
-    push  %dx
-    push  %ds
-    push  %es
-    push  %si
-
     # получаем адрес обработчика
     movb  $DOS_GET_IRQ_HANDLER, %ah
     movb  $DOS_MULTIPLEX_IRQ,   %al
@@ -91,20 +88,12 @@ remove_resident:
     movw  %es:(%si), %ds
 
     # освобождаем память
-    movw  %es:(0x2c), %es
     movb  $DOS_FREE_MEMORY, %ah
     int   $DOS_SYSCALL
 
     # восстанавливаем старый обработчик
     movb  $DOS_SET_IRQ_HANDLER, %ah
     int   $DOS_SYSCALL
-
-    pop   %si
-    pop   %es
-    pop   %ds
-    pop   %dx
-    pop   %bx
-    pop   %ax
 
     ret
 

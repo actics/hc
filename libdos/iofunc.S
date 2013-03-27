@@ -2,6 +2,37 @@
 
 # -----------------------------------------------------
 
+# Берет следующее число из строки аргументов
+# INPUT:  %al - string length
+#         %es:(%si) - string
+# OUTPUT: %al - string length
+#         %ah - success status
+#         %dl - number
+get_number_from_argv:
+    movb  $TRUE, %ah
+1:
+    cmpb  $' ', %es:(%si)
+    jne   2f
+    incw  %si
+    decb  %al
+    jmp   1b
+2:
+    cmpb  $'0', %es:(%si)
+    jl    3f
+    cmpb  $'9', %es:(%si)
+    jg    3f
+    movb  %es:(%si), %bl
+    subb  $'0', %bl
+    jmp   4f
+3:
+    movb  $FALSE, %ah
+4:
+    incw  %si
+    decb  %al
+    ret
+
+# -----------------------------------------------------
+
 # функция печатающая hex представление регистра %al
 # void __fastcall print_char_hex(char target_char)#
 print_char_hex:
