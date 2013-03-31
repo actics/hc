@@ -1,0 +1,2 @@
+C:\SET_MODE.COM %1 %2
+C:\CENSQR.COM

@@ -5,11 +5,11 @@
 # Берет следующее число из строки аргументов
 # INPUT:  %al - string length
 #         %es:(%si) - string
-# OUTPUT: %al - string length
-#         %ah - success status
+# OUTPUT: %ah - success status
+#         %al - string length
 #         %dl - number
 get_number_from_argv:
-    movb  $TRUE, %ah
+    movb  $SUCCESS, %ah
 1:
     cmpb  $' ', %es:(%si)
     jne   2f
@@ -21,11 +21,11 @@ get_number_from_argv:
     jl    3f
     cmpb  $'9', %es:(%si)
     jg    3f
-    movb  %es:(%si), %bl
-    subb  $'0', %bl
+    movb  %es:(%si), %dl
+    subb  $'0', %dl
     jmp   4f
 3:
-    movb  $FALSE, %ah
+    movb  $FAIL, %ah
 4:
     incw  %si
     decb  %al

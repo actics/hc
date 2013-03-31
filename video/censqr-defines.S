@@ -22,25 +22,16 @@
 
 .ifgt VIDEO_MODE - 0x01
     .set SCREEN_WIDTH,    80
+    .set TABLE_WIDTH,     33
+    .set VERTICAL_HEADER_WIDTH,   3
 .else
     .set SCREEN_WIDTH,    40
+    .set TABLE_WIDTH,     16
+    .set VERTICAL_HEADER_WIDTH,   1
 .endif
 
 .set SCREEN_HEIGHT,   25
-
-.ifgt VIDEO_MODE - 0x01
-    .set TABLE_WIDTH,     33
-.else
-    .set TABLE_WIDTH,     16
-.endif
-
 .set TABLE_HEIGHT,    16
-
-.ifgt VIDEO_MODE - 0x01
-    .set VERTICAL_HEADER_WIDTH,   3
-.else
-    .set VERTICAL_HEADER_WIDTH,   1
-.endif
 
 .set BORDER_WIDTH,    1 + VERTICAL_HEADER_WIDTH + 1 + TABLE_WIDTH + 1
 .set BORDER_HEIGHT,   1 + TABLE_HEIGHT + 1 + 1 + 1

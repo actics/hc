@@ -1,6 +1,6 @@
 .code16
 
-.set VIDEO_MODE, 0x02
+.set VIDEO_MODE, 0x01
 
 .include "../libdos/dos-headers.S"
 .include "./censqr-defines.S"

@@ -31,5 +31,6 @@
 # other
 .set TRUE,                   0x00
 .set FALSE,                  0x01
+
 .set SUCCESS,                0x00
-.set SCREEN_ROWS,            24
+.set FAIL,                   0x01
