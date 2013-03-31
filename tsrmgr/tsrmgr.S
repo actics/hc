@@ -1,7 +1,11 @@
 .code16
 
 # уникальный номер программы
-.set PROCESS_NUMBER, 0x88
+.ifndef ANOTHER_RESIDENT
+    .set PROCESS_NUMBER, 0xf8
+.else
+    .set PROCESS_NUMBER, 0xf9
+.endif
 
 .section .text
     jmp   start_manager
@@ -18,15 +22,19 @@ start_resident:
 
     # magic
     movw  $0xdead, %ax
+.ifndef ANOTHER_RESIDENT
     movw  $0xbeef, %bx
+.else
+    movw  $0xbef0, %bx
+.endif
     
     iret
 
 next_handler:
     # передача работы на старый обработчик
-    jmp   %cs:(old_handler)
+    ljmp   *%cs:(old_handler)
 
-.set RESIDENT_SIZE, 0x12
+.set RESIDENT_SIZE, 0x14
 
 # начало менеджера резидента
 start_manager:

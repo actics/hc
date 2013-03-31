@@ -5,9 +5,9 @@
 # OUTPUT: NONE
 install_resident:
     # Удаляем переменные среды
-#    movw  %cs:(0x2c), %es
-#    movb  $DOS_FREE_MEMORY, %ah
-#    int   $DOS_SYSCALL
+    movw  %cs:(0x2c), %es
+    movb  $DOS_FREE_MEMORY, %ah
+    int   $DOS_SYSCALL
 
     # узнаем адрес старого обработчика
     movb  $DOS_GET_IRQ_HANDLER, %ah
@@ -15,8 +15,8 @@ install_resident:
     int   $DOS_SYSCALL
 
     # сохраняем адрес
-    movw  %es,   (old_handler)
-    movw  %bx,   (old_handler+2)
+    movw  %bx,   (old_handler)
+    movw  %es,   (old_handler+2)
 
     # записываем адрес резидента в таблицу прерываний
     movb  $DOS_SET_IRQ_HANDLER, %ah
@@ -26,7 +26,7 @@ install_resident:
 
     # завершает программу и остается резидентом
     movb  $DOS_MAKE_RESIDENT, %ah
-    movb  $0x00, %al
+    movb  $SUCCESS, %al
     movw  $RESIDENT_SIZE, %dx # количество параграфов под резидент
     int   $DOS_SYSCALL
 
@@ -52,7 +52,11 @@ check_resident:
     # magic!
     cmp   $0xdead, %ax
     jne   1f
+.ifndef ANOTHER_RESIDENT
     cmp   $0xbeef, %bx
+.else
+    cmp   $0xbef0, %bx
+.endif
     jne   1f
 
     # устанавливаем возвращаемое значение в TRUE
@@ -83,9 +87,9 @@ remove_resident:
     # кладем в ds:dx адрес старого обработчика
     movw  %bx,   %si
     subw  $0x02, %si
-    movw  %es:(%si), %dx
-    subw  $0x02, %si
     movw  %es:(%si), %ds
+    subw  $0x02, %si
+    movw  %es:(%si), %dx
 
     # освобождаем память
     movb  $DOS_FREE_MEMORY, %ah
