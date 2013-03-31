@@ -44,7 +44,7 @@ print_char_hex:
     push  %dx
     
     # сохраняем адрес таблицы hex символов для использования с xlat
-    movw  $hex_symbol, %bx
+    movw  $Liofunc_hex_symbol, %bx
 
     # сохраняем обрабатываемое значение
     movb  %al,   %cl
@@ -79,6 +79,6 @@ print_char_hex:
 .section .data
 
     # таблица hex-символов
-    hex_symbol:
+    Liofunc_hex_symbol:
         .ascii "0123456789abcdef"
 

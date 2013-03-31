@@ -5,9 +5,9 @@
 # OUTPUT: NONE
 install_resident:
     # Удаляем переменные среды
-    movw  %cs:(0x2c), %es
-    movb  $DOS_FREE_MEMORY, %ah
-    int   $DOS_SYSCALL
+#    movw  %cs:(0x2c), %es
+#    movb  $DOS_FREE_MEMORY, %ah
+#    int   $DOS_SYSCALL
 
     # узнаем адрес старого обработчика
     movb  $DOS_GET_IRQ_HANDLER, %ah
