@@ -1,9 +1,9 @@
 .code16
 
+.set VIDEO_MODE, 0x02
+
 .include "../libdos/dos-headers.S"
 .include "./censqr-defines.S"
-
-.set VIDEO_MODE, 0x03
 
 .section .text
     # устанавливаем видеорежим
@@ -47,7 +47,7 @@
     movb  $VERTICAL_LINE, %dl
     call  write_symbol
     call  write_space
- 2:
+2:
     movb  %al, %dl
     incb  %al
     call  write_symbol
@@ -104,9 +104,11 @@ write_symbol:
 #        %si - address
 # OUTPUT: NONE
 write_space:
+.ifgt VIDEO_MODE - 0x01
     movb  $' ',  %dl
     movw  %dx,  (%si)
     addw  $0x02, %si
+.endif
 
     ret
  
@@ -167,7 +169,7 @@ write_horisontal_line:
         .byte DOUBLE_VERTICAL_LINE
         .word BORDER_RIGTH_BOTTOM - SCREEN_WIDTH * 2
         .ascii "\\"
-        .word TOP_HEADER_START - 6
+        .word TOP_HEADER_START - (VERTICAL_HEADER_WIDTH/2+2)*2
 
     .set special_symbols_count, (. - special_symbols) / 3
 
