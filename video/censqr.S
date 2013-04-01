@@ -6,8 +6,14 @@
 .include "./censqr-defines.S"
 
 .section .text
+    movb  %0, %al
+    movb  $BIOS_SET_PAGE, %ah
+    int   $BIOS_VIDEO_CALL
+
     movb  $BIOS_GET_MODE, %ah
     int   $BIOS_VIDEO_CALL
+
+    movb  %al, (video_mode)
 
     push  $0xb800
     pop   %es
@@ -20,12 +26,11 @@
     movw  $0x28, (space)
     cmpb  $0x01, %al
     jbe   1f
-    addw  $0xd8, %di
-    addw  $0x28, (space)
+    addw  $0xda, %di
+    addw  $0x2a, (space)
 
     # цикл основной отрисовки таблицы
-1:  xorw  %bx, %bx
-    xorb  %dl, %dl
+1:  xorb  %dl, %dl
     xorw  %bp, %bp
 
 1:  addw  (space), %di
@@ -46,7 +51,7 @@
     call  write_symbol
     incw  %si
     loop  2b
-    
+
     movw  $0x10, %cx
 2:  movb  %dh, %al
     cmpb  $1, %dl 
@@ -55,9 +60,9 @@
     incw  %bx
     jmp   4f
 
-3:  cmp   $3, %dl
+3:  cmpb   $3, %dl
     jb    4f
-    cmp   $19, %dl
+    cmpb   $19, %dl
     je    4f
     movb  %bh, %al
     incb  %bh
@@ -66,7 +71,7 @@
     loop  2b
 
     movb  (%si), %al
-    call  write_symbol
+    stosw
 
     incb  %dl
     cmpb  $20,    %dl
@@ -80,14 +85,17 @@
 # OUTPUT: NONE
 write_symbol:
     stosw
+    cmpb  $1, (video_mode)
+    jbe   1f
     movb  %dh,   %al
     stosw
 
-    ret
+1:  ret
 
 
 .section .bss
-    .lcomm space,        1
+    .lcomm space,        2
+    .lcomm video_mode,   1
 
 .section .data
     line_1:
