@@ -9,6 +9,7 @@
 .set VERTICAL_LINE,                0xb3
 .set HORISONTAL_LINE,              0xc4
 
+.set SPACE, 0x20
 .set CROSSHAIR,                           0xc5
 .set DOUBLE_VERTICAL_LINE_LEFT_ONE,       0xb6
 .set DOUBLE_VERTICAL_LINE_RIGTH_ONE,      0xc7
