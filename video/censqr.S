@@ -1,127 +1,191 @@
 .code16
 
-.set VIDEO_MODE, 0x01
+.set VIDEO_MODE, 3
+.set VIDEO_PAGE, 1
+.set START_ROW,  4
+.set START_COLUMN_WIDE_MODE,   23
+.set START_COLUMN_NARROW_MODE, 12
+.set SPACE, 0x20
 
 .include "../libdos/dos-headers.S"
-.include "./censqr-defines.S"
 
 .section .text
-    movb  %0, %al
-    movb  $BIOS_SET_PAGE, %ah
+    call  get_and_check
+    cmp   $SUCCESS, %ah
+    jne   exit
+
+    movb  %dh, (video_mode)
+    movb  %dl, (video_page)
+
+    # Узнаем текущий режим
+    movb  $BIOS_GET_MODE,   %ah
     int   $BIOS_VIDEO_CALL
 
-    movb  $BIOS_GET_MODE, %ah
+    # Сохраняем текущий режим
+    movb  %al, (video_mode_old)
+    movb  %bh, (video_page_old)
+
+    # Устанвливаем новый режим
+    movb  (video_mode),     %al
+    movb  $BIOS_SET_MODE,   %ah
     int   $BIOS_VIDEO_CALL
 
-    movb  %al, (video_mode)
+    # Устанавливаем новую страницу
+    movb  (video_page),     %al
+    movb  $BIOS_SET_PAGE,   %ah
+    int   $BIOS_VIDEO_CALL
 
-    push  $0xb800
-    pop   %es
+    # Узнаем стартовую колонку 
+    movb  $START_COLUMN_WIDE_MODE,   (start_column)  
+    cmpb  $1, (video_mode)
+    ja    1f
+    movb  $START_COLUMN_NARROW_MODE, (start_column)
+1:  
 
-    # устанавливаем рабочий цвет
-    movb  $COLOR_GREEN, %ah
-
-    # устанавливаем стартовую позицию, и размер переноса.
-    movw  $0xdc, %di
-    movw  $0x28, (space)
-    cmpb  $0x01, %al
-    jbe   1f
-    addw  $0xda, %di
-    addw  $0x2a, (space)
-
-    # цикл основной отрисовки таблицы
-1:  xorb  %dl, %dl
-    xorw  %bp, %bp
-
-1:  addw  (space), %di
-
-    movw  $line_2, %si
-
-    addb  $237, %dl
-    cmpb  $240, %dl
-    jae   2f
-    leaw  line_1(%bp), %si
-    addw  $0x04,    %bp
+    # Устанавливаем переменные необходимые для работы 
+    movb  $0,  %al                  # Номер стартового символа
+    movw  $0,  %di                  # Счетчик установщиков цвета
+    movw  $16, %cx                  # Счетчик цикла
+    movb  $START_ROW,  %dh          # Номер начальной строки
+    movb  (start_column), %dl       # Номер начальной колонки
     
-2:  subb  $237,   %dl
-    movb  1(%si),  %dh
+    # Основной цикл. На каждой итерации мы выбираем новый установщик
+    # цвета, и выводим линию символов
+1:  movw  color_setters(%di), %si
+    call  write_line
 
-    movw  $0x03, %cx
-2:  movb  (%si), %al
-    call  write_symbol
-    incw  %si
-    loop  2b
+    incb  %dh
+    movb  (start_column), %dl
+    addw  $2, %di
 
-    movw  $0x10, %cx
-2:  movb  %dh, %al
-    cmpb  $1, %dl 
-    jne   3f
-    movb  hex_symbol(%bx), %al
-    incw  %bx
-    jmp   4f
+    loop  1b
+   
+    # Ждем нажатия на клавишу
+    movb  $KEYBOARD_WAIT_CHAR, %ah
+    int   $KEYBOARD_CALL
 
-3:  cmpb   $3, %dl
-    jb    4f
-    cmpb   $19, %dl
-    je    4f
-    movb  %bh, %al
-    incb  %bh
+    # Восстанавливаем предыдущий режим
+    movb  (video_mode_old),    %al
+    movb  $BIOS_SET_MODE,      %ah
+    int   $BIOS_VIDEO_CALL
 
-4:  call  write_symbol
-    loop  2b
+    # Восстанавливаем предыдущую страницу
+    movb  (video_page_old),    %al
+    movb  $BIOS_SET_PAGE,      %ah
+    int   $BIOS_VIDEO_CALL
+    
+exit:
+    # Выходим из программы
+    mov  $SUCCESS,            %al
+    movb  $DOS_EXIT,           %ah
+    int   $DOS_SYSCALL
 
-    movb  (%si), %al
-    stosw
 
+# Функция рисует строку. В каждой новой итерации происходит
+# генерация нового цвета с помощью переданной функции,
+# вывод последующего символа и пробела. В режимах 1-2
+# пробел не выводится для получения эффекта квадрата
+
+# input: %dx - cursor row | column
+#        %al - start symbol
+#        %si - color function
+write_line:
+    push  %bx
+    push  %cx
+
+    # Устанавливаем параметры для функции вывода
+    movw  $1,           %cx
+    movb  (video_page), %bh
+
+1:  movb  $BIOS_SET_POSITION,     %ah
+    int   $BIOS_VIDEO_CALL
+
+    call  *%si
+
+    movb  $BIOS_WRITE_CHAR_COLOR, %ah
+    int   $BIOS_VIDEO_CALL
+
+    incb  %al
     incb  %dl
-    cmpb  $20,    %dl
-    jne   1b
+
+    movb  $BIOS_SET_POSITION,     %ah
+    int   $BIOS_VIDEO_CALL    
+
+    testb $15, %al
+    jz    1f
+
+    cmpb  $1, (video_mode)
+    jbe   1b
+
+    push  %ax
+    movb  $SPACE, %al
+    movb  $BIOS_WRITE_CHAR_COLOR, %ah
+    int   $BIOS_VIDEO_CALL
+    pop   %ax
+    incb  %dl
+
+    jmp   1b
+
+1:  pop   %cx
+    pop   %bx
 
     ret
 
 
-# INPUT: %dx - color | symbol
-#        %di - address
-# OUTPUT: NONE
-write_symbol:
-    stosw
-    cmpb  $1, (video_mode)
-    jbe   1f
-    movb  %dh,   %al
-    stosw
+# color setters: change %bl
 
+
+color_set_different:
+    movb  %al, %bl
+    xorb  $15, %bl
+    ret
+
+
+color_set_blink_green:
+    movb  $0b10000010, %bl
+    ret
+
+
+color_set_background:
+    movb  %dh, %bl
+    rolb  $4, %bl
+    andb  $0b01110000, %bl
+    cmpb  $0, %bl
+    jne   1f
+    movb  $0b00000111, %bl
 1:  ret
 
 
+color_set_blink_red:
+    movb  $0b10000100, %bl
+    ret
+
+
+color_set_blue:
+    movb  $0b00000001, %bl
+    ret
+
+
 .section .bss
-    .lcomm space,        2
-    .lcomm video_mode,   1
+    .lcomm video_mode,     1
+    .lcomm video_page,     1
+    .lcomm video_mode_old, 1
+    .lcomm video_page_old, 1
+    .lcomm start_column,   1
+
 
 .section .data
-    line_1:
-        .byte LEFT_TOP_DOUBLE_CORNER
-        .byte DOUBLE_HORISONTAL_LINE
-        .byte DOUBLE_HORISONTAL_LINE_BOTTOM_ONE
-        .byte RIGTH_TOP_DOUBLE_CORNER
 
-    line_2:
-        .byte DOUBLE_VERTICAL_LINE
-        .byte SPACE
-        .byte VERTICAL_LINE
-        .byte DOUBLE_VERTICAL_LINE
-        
-    line_3:
-        .byte DOUBLE_VERTICAL_LINE_RIGTH_ONE
-        .byte HORISONTAL_LINE
-        .byte CROSSHAIR
-        .byte DOUBLE_VERTICAL_LINE_LEFT_ONE
+# Массив цветофункций
+color_setters:
+    .word  color_set_different
+    .word  color_set_blink_green
+    .rept  12
+        .word color_set_background
+    .endr
+    .word  color_set_blink_red
+    .word  color_set_blue
 
-    line_20:
-        .byte LEFT_BOTTOM_DOUBLE_CORNER
-        .byte DOUBLE_HORISONTAL_LINE
-        .byte DOUBLE_HORISONTAL_LINE_TOP_ONE
-        .byte RIGTH_BOTTOM_DOUBLE_CORNER
 
-    hex_symbol:
-        .ascii "0123456789abcdef"
+.include "./set-mode.S"
 

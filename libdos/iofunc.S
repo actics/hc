@@ -6,7 +6,6 @@
 # INPUT:  %al - string length
 #         %es:(%si) - string
 # OUTPUT: %ah - success status
-#         %al - string length
 #         %dl - number
 get_number_from_argv:
     movb  $SUCCESS, %ah

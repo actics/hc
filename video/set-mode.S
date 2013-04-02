@@ -2,6 +2,13 @@
 
 .section .text
 
+.include "../libdos/dos-headers.S"
+.include "../libdos/iofunc.S"
+
+# INPUT:  NONE
+# OUTPUT: %al - status
+#         %dx - mode | page
+get_and_check:
     call  get_mode_page
     cmpb  $SUCCESS, %ah
     jne   1f
@@ -10,13 +17,7 @@
     cmpb  $SUCCESS, %ah
     jne   2f
 
-    movb  %dh, %al
-    movb  $BIOS_SET_MODE,  %ah
-    int   $BIOS_VIDEO_CALL
-
-    movb  %dl, %al
-    movb  $BIOS_SET_PAGE, %ah
-    int   $BIOS_VIDEO_CALL
+    movb  $SUCCESS, %al
 
     ret
 1:
@@ -24,22 +25,24 @@
     movb  $DOS_PRINT_STRING,     %ah
     int   $DOS_SYSCALL
 
-    ret
+    jmp   3f
 2:
     cmp   $CHECK_MODE_FAIL, %ah
-    jne    1f
+    jne   1f
     
     movw  $invalid_mode_message, %dx
     movb  $DOS_PRINT_STRING,     %ah
     int   $DOS_SYSCALL
 
-    ret
+    jmp   3f
 1:    
     movw  $invalid_page_message, %dx
     movb  $DOS_PRINT_STRING,     %ah
     int   $DOS_SYSCALL
 
+3:  movb $FAIL, %al
     ret
+
 
 # INPUT:  NONE
 # OUTPUT: %ah - status
@@ -118,5 +121,3 @@ check_mode_page:
     invalid_page_message: 
         .ascii "invalid page$"
 
-.include "../libdos/dos-headers.S"
-.include "../libdos/iofunc.S"
