@@ -102,8 +102,8 @@ check_mode_page:
     ja    4f
     jmp   5f
 3:
-    cmp   $0x00, %dl
-    jne   4f
+    cmp   $0x07, %dl
+    ja    4f
     jmp   5f
 4:
     movb  $CHECK_PAGE_FAIL, %ah
