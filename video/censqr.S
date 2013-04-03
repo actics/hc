@@ -52,14 +52,38 @@
     # Основной цикл. На каждой итерации мы выбираем новый установщик
     # цвета, и выводим линию символов
 1:  movw  color_setters(%di), %si
-    call  write_line
+    call  write_char_line
 
     incb  %dh
     movb  (start_column), %dl
     addw  $2, %di
 
     loop  1b
+    
+    # Выводим сообщение о текущей странице
+    movw  $page_string,        %bp
+    movw  $page_string_length, %cx
+    call  write_string
+    
+    movw  $1,                     %cx
+    movb  $'0',                   %al
+    addb  (video_page),           %al
+    movb  $BIOS_WRITE_CHAR_COLOR, %ah
+    int   $BIOS_VIDEO_CALL
    
+    # Выводим сообщение о текущем режиме
+    movw  $mode_string,        %bp
+    movw  $mode_string_length, %cx
+    movb  $START_ROW-1,        %dh
+    movb  (start_column),      %dl
+    call  write_string
+    
+    movw  $1, %cx
+    movb  $'0',                   %al
+    addb  (video_mode),           %al
+    movb  $BIOS_WRITE_CHAR_COLOR, %ah
+    int   $BIOS_VIDEO_CALL
+
     # Ждем нажатия на клавишу
     movb  $KEYBOARD_WAIT_CHAR, %ah
     int   $KEYBOARD_CALL
@@ -76,9 +100,23 @@
     
 exit:
     # Выходим из программы
-    mov  $SUCCESS,            %al
+    movb  $SUCCESS,            %al
     movb  $DOS_EXIT,           %ah
     int   $DOS_SYSCALL
+
+
+# INPUT:  %bp - string
+#         %cx - string length
+#         %dx - row | column
+# OUTPUT: NONE
+write_string:
+    movb  $1,                  %al
+    movb  (video_page),        %bh
+    movb  $0b00000010,         %bl
+    movb  $BIOS_WRITE_STRING,  %ah
+    int   $BIOS_VIDEO_CALL
+
+    ret
 
 
 # Функция рисует строку. В каждой новой итерации происходит
@@ -89,7 +127,7 @@ exit:
 # input: %dx - cursor row | column
 #        %al - start symbol
 #        %si - color function
-write_line:
+write_char_line:
     push  %bx
     push  %cx
 
@@ -185,6 +223,14 @@ color_setters:
     .endr
     .word  color_set_blink_red
     .word  color_set_blue
+
+mode_string:
+    .ascii "current mode: "
+.set mode_string_length, (. - mode_string)
+
+page_string:
+    .ascii "active page: "
+.set page_string_length, (. - page_string)
 
 
 .include "./set-mode.S"

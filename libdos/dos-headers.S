@@ -24,6 +24,7 @@
 .set BIOS_WRITE_CHAR_COLOR,  0x09
 .set BIOS_WRITE_CHAR,        0x0a
 .set BIOS_GET_MODE,          0x0f
+.set BIOS_WRITE_STRING,      0x13
 
 # Keyboard function
 .set KEYBOARD_WAIT_CHAR,     0x00
