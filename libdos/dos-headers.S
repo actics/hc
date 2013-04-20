@@ -28,6 +28,7 @@
 
 # Keyboard function
 .set KEYBOARD_WAIT_CHAR,     0x00
+.set KEYBOARD_FLAG_STATE,    0x02
 
 # other
 .set TRUE,                   0x00

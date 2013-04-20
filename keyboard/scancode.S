@@ -1,0 +1,150 @@
+.code16
+
+.include "../libdos/dos-headers.S"
+
+.section .text
+
+1:  movb  $KEYBOARD_WAIT_CHAR, %ah
+    int   $KEYBOARD_CALL
+
+    movb  %ah, (scancode)
+    movb  %al, (asciicode)
+
+    cmpb  $0x01, (scancode)
+    jne   2f
+    
+    movb  $SUCCESS, %al
+    movb  $DOS_EXIT, %ah
+    int   $DOS_SYSCALL
+
+2:  movb  $KEYBOARD_FLAG_STATE, %ah
+    int   $KEYBOARD_CALL
+
+    movb  %al, (flag_reg)
+
+    movw  $scancode_message, %dx
+    movb  $DOS_PRINT_STRING, %ah
+    int   $DOS_SYSCALL
+
+    movb  (scancode), %al
+    call  print_char_hex
+
+    movw  $asciicode_message, %dx
+    movb  $DOS_PRINT_STRING, %ah
+    int   $DOS_SYSCALL
+
+    movb  (asciicode), %al
+    call  print_char_hex
+
+    movw  $symbol_message, %dx
+    movb  $DOS_PRINT_STRING, %ah
+    int   $DOS_SYSCALL
+
+    movb  (asciicode), %dl
+    movb  $DOS_PRINT_CHAR, %ah
+    int   $DOS_SYSCALL
+    
+    movw  $special_message, %dx
+    movb  $DOS_PRINT_STRING, %ah
+    int   $DOS_SYSCALL
+
+    push  $data_array
+    push  (flag_reg)
+    call  print_flags
+
+    movw  $separator_string, %dx
+    movb  $DOS_PRINT_STRING, %ah
+    int   $DOS_SYSCALL
+
+    jmp   1b
+
+
+# void print_flags(short flag_reg, char** flags_messags);
+print_flags:
+    push  %bp
+    movw  %sp, %bp
+
+    movb  4(%bp), %bh
+    movw  6(%bp), %di
+    
+    push  %ax
+    push  %bx
+    push  %cx
+    push  %dx
+    push  %di
+
+    movb  $0x01, %bl
+    movw  $0x00, %cx
+
+1:  testb %bl, %bh
+    jz    2f
+
+    movw  (%di), %dx
+    movb  $DOS_PRINT_STRING, %ah
+    int   $DOS_SYSCALL
+
+2:  shlb  $0x01, %bl
+    addw  $0x02, %di
+    incw  %cx
+    cmpw  $0x08, %cx
+    jne    1b
+
+2:  pop   %di
+    pop   %dx
+    pop   %cx
+    pop   %bx
+    pop   %ax
+
+    movw  %bp, %sp
+    pop   %bp
+    ret
+    
+
+.section .data
+    separator_string:
+        .ascii "\n--------------------\n$"
+    detected_message:
+        .ascii "Detected keypress\n$"
+    scancode_message:
+        .ascii "Scancode:   $"
+    asciicode_message:
+        .ascii "\nASCII code: $"
+    symbol_message:
+        .ascii "\nSymbol:     $"
+    special_message:
+        .ascii "\nFlags: $"
+    rigth_shift_message:
+        .ascii "RigthShift $"
+    left_shift_message:
+        .ascii "LeftShift $"
+    ctrl_message:
+        .ascii "Ctrl $"
+    alt_message:
+        .ascii "Alt $"
+    scroll_lock_message:
+        .ascii "ScrollLock $"
+    num_lock_message:
+        .ascii "NumLock $"
+    caps_lock_message:
+        .ascii "CapsLock $"
+    insert_message:
+        .ascii "Insert $"
+
+    data_array:
+        .word rigth_shift_message
+        .word left_shift_message
+        .word ctrl_message
+        .word alt_message
+        .word scroll_lock_message
+        .word num_lock_message
+        .word caps_lock_message
+        .word insert_message
+
+
+.section .bss
+    .lcomm scancode,  1
+    .lcomm asciicode, 1
+    .lcomm flag_reg,  1
+
+.include "../libdos/iofunc.S"
+
