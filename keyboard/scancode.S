@@ -4,7 +4,7 @@
 
 .section .text
 
-1:  movb  $KEYBOARD_WAIT_CHAR, %ah
+1:  movb  $KEYBOARD_WAIT_EXTEND_CHAR, %ah
     int   $KEYBOARD_CALL
 
     movb  %ah, (scancode)
@@ -17,10 +17,10 @@
     movb  $DOS_EXIT, %ah
     int   $DOS_SYSCALL
 
-2:  movb  $KEYBOARD_FLAG_STATE, %ah
+2:  movb  $KEYBOARD_EXTEND_FLAG_STATE, %ah
     int   $KEYBOARD_CALL
 
-    movb  %al, (flag_reg)
+    movw  %ax, (flag_reg)
 
     movw  $scancode_message, %dx
     movb  $DOS_PRINT_STRING, %ah
@@ -40,9 +40,11 @@
     movb  $DOS_PRINT_STRING, %ah
     int   $DOS_SYSCALL
 
-    movb  (asciicode), %dl
-    movb  $DOS_PRINT_CHAR, %ah
-    int   $DOS_SYSCALL
+    movb  (asciicode), %al
+    movb  $0x00, %bh
+    movw  $0x01, %cx
+    movb  $BIOS_WRITE_CHAR, %ah
+    int   $BIOS_VIDEO_CALL
     
     movw  $special_message, %dx
     movb  $DOS_PRINT_STRING, %ah
@@ -64,7 +66,7 @@ print_flags:
     push  %bp
     movw  %sp, %bp
 
-    movb  4(%bp), %bh
+    movw  4(%bp), %ax
     movw  6(%bp), %di
     
     push  %ax
@@ -73,21 +75,23 @@ print_flags:
     push  %dx
     push  %di
 
-    movb  $0x01, %bl
+    movw  $0x01, %bx
     movw  $0x00, %cx
 
-1:  testb %bl, %bh
+1:  testw %bx, %ax
     jz    2f
 
     movw  (%di), %dx
+    push  %ax
     movb  $DOS_PRINT_STRING, %ah
     int   $DOS_SYSCALL
+    pop   %ax
 
-2:  shlb  $0x01, %bl
+2:  shlw  $0x01, %bx
     addw  $0x02, %di
     incw  %cx
-    cmpw  $0x08, %cx
-    jne    1b
+    cmpw  $0x10, %cx
+    jne   1b
 
 2:  pop   %di
     pop   %dx
@@ -129,6 +133,22 @@ print_flags:
         .ascii "CapsLock $"
     insert_message:
         .ascii "Insert $"
+    left_ctrl_message:
+        .ascii "LeftCtrl $"
+    left_alt_message:
+        .ascii "LeftAlt $"
+    rigth_ctrl_message:
+        .ascii "RigthCtrl $"
+    rigth_alt_message:
+        .ascii "RigthAlt $"
+    scroll_lock_press_message:
+        .ascii "ScrollLockPress $"
+    num_lock_press_message:
+        .ascii "NumLockPress $"
+    caps_lock_press_message:
+        .ascii "CapsLockPress $"
+    sys_req_message:
+        .ascii "SysReq $"
 
     data_array:
         .word rigth_shift_message
@@ -139,6 +159,14 @@ print_flags:
         .word num_lock_message
         .word caps_lock_message
         .word insert_message
+        .word left_ctrl_message
+        .word left_alt_message
+        .word rigth_ctrl_message
+        .word rigth_alt_message
+        .word scroll_lock_press_message
+        .word num_lock_press_message
+        .word caps_lock_press_message
+        .word sys_req_message
 
 
 .section .bss

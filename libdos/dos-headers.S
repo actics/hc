@@ -27,8 +27,10 @@
 .set BIOS_WRITE_STRING,      0x13
 
 # Keyboard function
-.set KEYBOARD_WAIT_CHAR,     0x00
-.set KEYBOARD_FLAG_STATE,    0x02
+.set KEYBOARD_WAIT_CHAR,         0x00
+.set KEYBOARD_FLAG_STATE,        0x02
+.set KEYBOARD_WAIT_EXTEND_CHAR,  0x10
+.set KEYBOARD_EXTEND_FLAG_STATE, 0x12
 
 # other
 .set TRUE,                   0x00
