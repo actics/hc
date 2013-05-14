@@ -17,7 +17,6 @@
 .extern hide_cursor
 .extern wait_char
 .extern on_frame
-.extern on_circle
 
 .section .text
 main:
@@ -253,6 +252,7 @@ START_PROC
 
     call   toggle_frame_color
     call   draw_current_frame
+    call   draw_current_circle
 2:
     pop    %ax
 END_PROC
@@ -276,18 +276,41 @@ START_PROC
 END_PROC
 
 
+#bool on_circle(x, y)
+on_circle:
+
+START_PROC
+    push   %bx
+
+    call   hide_cursor
+
+    movb   $0x00, %bh
+    movb   $BIOS_READ_GRAPH_DOT, %ah
+    int    $BIOS_VIDEO_CALL
+
+    call   show_cursor
+
+    cmpb   (circle_color), %al
+    jne    1f
+
+    movw   $TRUE, %ax
+    jmp    2f
+
+1:  movw   $FALSE, %ax
+2:
+    pop    %bx
+END_PROC
+
+
 #bool on_current_circle(x, y)
 on_current_circle:
 
 START_PROC
 
-    push   (circle_radius)
-    push   (circle_y)
-    push   (circle_x)
     push   6(%bp)
     push   4(%bp)
     call   on_circle
-    addw   $10, %sp
+    addw   $4, %sp
 
 END_PROC
 

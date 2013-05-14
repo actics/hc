@@ -26,6 +26,7 @@
 .set BIOS_WRITE_CHAR_COLOR,  0x09
 .set BIOS_WRITE_CHAR,        0x0a
 .set BIOS_WRITE_GRAPH_DOT,   0x0c
+.set BIOS_READ_GRAPH_DOT,    0x0d
 .set BIOS_GET_MODE,          0x0f
 .set BIOS_WRITE_STRING,      0x13
 

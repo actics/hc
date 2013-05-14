@@ -16,7 +16,6 @@
 .globl hide_cursor
 .globl wait_char
 .globl on_frame
-.globl on_circle
 
 .section .text
 
@@ -546,33 +545,6 @@ START_PROC
 
 3:
 4:
-    pop    %cx
-    pop    %bx
-END_PROC
-
-
-#bool on_circle(x, y, circle_x, circle_y, radius)
-on_circle:
-
-START_PROC
-    push   %bx
-    push   %cx
-    push   %dx
-    push   %di
-
-    movw   $FALSE,  %ax
-
-    movw   4(%bp),  %bx
-    addw   6(%bp),  %bx
-
-    andw   $0xf, %bx
-    cmpw   $0xf, %bx
-    jne    1f
-
-    movw   $TRUE, %ax
-1:
-    pop    %di
-    pop    %dx
     pop    %cx
     pop    %bx
 END_PROC
