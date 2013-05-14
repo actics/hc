@@ -9,6 +9,12 @@
 .globl draw_vertical_line
 .globl draw_vertical_stripe
 .globl draw_frame
+.globl draw_circle
+.globl install_cursor
+.globl uninstall_cursor
+.globl show_cursor
+.globl hide_cursor
+.globl wait_char
 
 .section .text
 
@@ -52,16 +58,16 @@ START_PROC
     push   %cx
     push   %dx
     
-    call   hide_cursor
+#    call   hide_cursor
 
     movw   0x4(%bp),     %cx
     movw   0x6(%bp),     %dx
-    movb   0x0a,     %al
+    movb   0x8(%bp),     %al
     movb   (video_page), %bh
     movb   $BIOS_WRITE_GRAPH_DOT, %ah
     int    $BIOS_VIDEO_CALL
 
-    call   show_cursor
+#    call   show_cursor
 
     pop    %dx
     pop    %cx
@@ -84,28 +90,19 @@ START_PROC
     movw   0x6(%bp), %dx
     movw   0x8(%bp), %di
 
-    call   hide_cursor
-
 1:  testw  %di, %di
     je     1f
-/*
+
     push   0xa(%bp)
     push   %dx
     push   %cx
     call   draw_pixel
-    addw   $8, %sp
-*/
-    movb   0xa(%bp),    %al
-    movb   (video_page), %bh
-    movb   $BIOS_WRITE_GRAPH_DOT, %ah
-    int    $BIOS_VIDEO_CALL
+    addw   $6, %sp
 
     inc    %cx
     dec    %di
     jmp    1b
 1:
-    call   show_cursor
-
     pop    %di
     pop    %dx
     pop    %cx
@@ -128,22 +125,19 @@ START_PROC
     movw   6(%bp), %dx
     movw   8(%bp), %di
 
-    call   hide_cursor
-
 1:  testw  %di, %di
     je     1f
 
-    movb   0xa(%bp),    %al
-    movb   (video_page), %bh
-    movb   $BIOS_WRITE_GRAPH_DOT, %ah
-    int    $BIOS_VIDEO_CALL
+    push   0xa(%bp)
+    push   %dx
+    push   %cx
+    call   draw_pixel
+    addw   $6, %sp
 
     incw   %dx
     dec    %di
     jmp    1b
 1:
-    call   show_cursor
-
     pop    %di
     pop    %dx
     pop    %cx
@@ -287,6 +281,57 @@ START_PROC
 END_PROC
 
 
+#void draw_circle(x, y, rad, color)
+draw_circle:
+
+START_PROC
+    push   %ax
+    push   %bx
+    push   %cx
+
+    movw   4(%bp), %ax
+    movw   6(%bp), %bx
+    movw   8(%bp), %cx
+
+    subw   %cx, %ax
+    subw   %cx, %bx
+    shlw   %cx
+
+    push   0xa(%bp)
+    push   %cx
+    push   %cx
+    push   %bx
+    push   %ax
+    call   draw_vertical_stripe
+    addw   $8, %sp
+
+    pop    %cx
+    pop    %bx
+    pop    %ax
+END_PROC
+
+
+#void install_cursor()
+install_cursor:
+    push   %ax
+    movw   $MOUSE_INSTALL, %ax
+    int    $MOUSE_CALL
+    pop    %ax
+    ret
+    
+
+#void uninstall_cursor()
+uninstall_cursor:
+    push   %ax
+    push   %cx
+    movw   $0, %cx
+    movw   $MOUSE_SET_HANDLER, %ax
+    int    $MOUSE_CALL
+    pop    %cx
+    pop    %ax
+    ret
+    
+
 #void show_cursor()
 show_cursor:
     push   %ax
@@ -301,6 +346,15 @@ hide_cursor:
     push   %ax
     movw   $MOUSE_HIDE_CURSOR, %ax
     int    $MOUSE_CALL
+    pop    %ax
+    ret
+
+
+#void wait_char()
+wait_char:
+    push   %ax 
+    movb   $KEYBOARD_WAIT_CHAR, %ah
+    int    $KEYBOARD_CALL
     pop    %ax
     ret
 
