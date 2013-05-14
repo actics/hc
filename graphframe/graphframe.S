@@ -70,9 +70,17 @@ mouse_handler:
 1:  cmpw   $0b00001, %ax
     jne    1f
 
+    cmpw   $TRUE, (frame_gripped)
+    jne    2f
+    
     push   %dx
     push   %cx
     call   drag_event
+    addw   $4, %sp
+
+2:  push   %dx
+    push   %cx
+    call   move_event
     addw   $4, %sp
 
 1:  retf
@@ -86,9 +94,6 @@ START_PROC
     push   %bx
     push   %cx
 
-    cmpw   $TRUE, (frame_gripped)
-    jne    1f
-    
     movw   (on_frame_mouse_x), %bx
     movw   (on_frame_mouse_y), %cx
 
@@ -107,23 +112,80 @@ START_PROC
 
     call   in_screen
     cmpw   $TRUE, %ax
-    je     2f
+    je     1f
 
     addw   %bx, (frame_x)
     addw   %cx, (frame_y)
     addw   %bx, (frame_end_x)
     addw   %cx, (frame_end_y)
 
-2:  call   draw_current_frame
+1:  call   draw_current_frame
     movw   4(%bp), %ax
     movw   %ax, (on_frame_mouse_x)
     movw   6(%bp), %ax
     movw   %ax, (on_frame_mouse_y)
 
-1:
     pop    %cx
     pop    %bx
     pop    %ax
+END_PROC
+
+
+#void move_event(x, y)
+move_event:
+
+START_PROC
+
+    push   (frame_end_y)
+    push   (frame_y)
+    push   6(%bp)
+    call   find_interval_place
+    addw   $6, %sp
+
+    movw   %ax, %bx
+
+    push   (frame_end_x)
+    push   (frame_x)
+    push   4(%bp)
+    call   find_interval_place
+    addw   $6, %sp
+
+    push   (circle_color)
+    movw   $0x00, (circle_color)
+    call   draw_current_circle
+    pop    (circle_color)
+
+    call   draw_current_frame
+
+    movw   %ax, (circle_x)
+    movw   %bx, (circle_y)
+    call   draw_current_circle
+
+
+END_PROC
+
+
+#void find_interval_place(val, from, to)
+find_interval_place:
+
+START_PROC
+
+    movw   4(%bp), %ax
+    
+    cmpw   6(%bp), %ax
+    jg     1f
+
+    movw   6(%bp), %ax
+    addw   $CIRCLE_GAP, %ax
+    jmp    2f
+
+1:  cmpw   8(%bp), %ax
+    jb     2f
+
+    movw   8(%bp), %ax
+    subw   $CIRCLE_GAP, %ax
+
+2:  
 END_PROC
 
 
@@ -201,7 +263,7 @@ on_current_frame:
     
 START_PROC
 
-    push   (frame_width)
+    push   $FRAME_WIDTH
     push   (frame_end_y)
     push   (frame_end_x)
     push   (frame_y)
@@ -238,7 +300,7 @@ START_PROC
     call   hide_cursor
 
     push   (frame_color)
-    push   (frame_width)
+    push   $FRAME_WIDTH
     push   (frame_end_y)
     push   (frame_end_x)
     push   (frame_y)
@@ -342,20 +404,21 @@ END_PROC
 
 .set SCREEN_WIDTH,  640
 .set SCREEN_HEIGTH, 480
+.set FRAME_WIDTH,   5
+.set CIRCLE_GAP,    (FRAME_WIDTH - 1) / 2
 
 .section .data
 
     frame_color:   .word 0x0a
-    frame_width:   .word 10
     frame_x:       .word 10
     frame_y:       .word 10
     frame_end_x:   .word 100
     frame_end_y:   .word 200
 
     circle_color:  .word 0x0c
-    circle_radius: .word 15
-    circle_x:      .word 300
-    circle_y:      .word 300
+    circle_radius: .word 5
+    circle_x:      .word 12 
+    circle_y:      .word 12
 
     frame_gripped: .word FALSE
 

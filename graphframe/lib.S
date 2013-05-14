@@ -275,7 +275,6 @@ START_PROC
     pop    %cx
     pop    %bx
     pop    %ax
-    addw   $0x04, %sp
 END_PROC
 
 
@@ -549,8 +548,6 @@ START_PROC
 4:
     pop    %cx
     pop    %bx
-
-    addw   $20, %sp
 END_PROC
 
 
