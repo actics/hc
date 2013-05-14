@@ -17,6 +17,7 @@
 .extern hide_cursor
 .extern wait_char
 .extern on_frame
+.extern on_circle
 
 .section .text
 main:
@@ -26,15 +27,11 @@ main:
     call   draw_current_frame
 
     movw   $MOUSE_SET_HANDLER, %ax
-    movw   $0b00101011, %cx
+    movw   $0b10111, %cx
     movw   $mouse_handler, %dx
     int    $MOUSE_CALL
 
-    push   $3
-    push   $15
-    push   $200
-    push   $200
-    call   draw_circle
+    call   draw_current_circle
 
     call   wait_char
     call   hide_cursor
@@ -46,28 +43,183 @@ main:
 
 mouse_handler:
     
-    push   (frame_width)
-    push   (frame_end_y)
-    push   (frame_end_x)
-    push   (frame_y)
-    push   (frame_x)
+    cmpw   $0b10000, %ax
+    jne    1f
+    
     push   %dx
     push   %cx
-    call   on_frame
-    addw   $14, %sp
+    call   rigth_button_pressed
+    addw   $4, %sp
 
-    cmpw   $TRUE, %ax
-    jne    2f
+1:  cmpw   $0b00010, %ax
+    jne    1f
+
+    push   %dx
+    push   %cx
+    call   left_button_pressed
+    addw   $4, %sp
+
+1:  cmpw   $0b00100, %ax
+    jne    1f
+
+    push   %dx
+    push   %cx
+    call   left_button_released
+    addw   $4, %sp
+
+1:  cmpw   $0b00001, %ax
+    jne    1f
+
+    push   %dx
+    push   %cx
+    call   drag_event
+    addw   $4, %sp
+
+1:  retf
+
+
+#void drag_event(x, y)
+drag_event:
+
+START_PROC
+    push   %ax
+    push   %bx
+    push   %cx
+
+    cmpw   $TRUE, (frame_gripped)
+    jne    1f
+    
+    movw   (on_frame_mouse_x), %bx
+    movw   (on_frame_mouse_y), %cx
+
+    movw   4(%bp), %ax
+    subw   %ax, %bx
+    movw   6(%bp), %ax
+    subw   %ax, %cx
+
+    movw   (frame_color), %ax
+    movw   $0x00, (frame_color)
+    call   draw_current_frame
+    movw   %ax, (frame_color)
+    subw   %bx, (frame_x)
+    subw   %cx, (frame_y)
+    subw   %bx, (frame_end_x)
+    subw   %cx, (frame_end_y)
+    call   draw_current_frame
+    movw   4(%bp), %ax
+    movw   %ax, (on_frame_mouse_x)
+    movw   6(%bp), %ax
+    movw   %ax, (on_frame_mouse_y)
 
 1:
-    cmpw   $2, %bx
+    pop    %cx
+    pop    %bx
+    pop    %ax
+END_PROC
+
+
+#void left_button_pressed(x, y)
+left_button_pressed:
+
+START_PROC
+    push   %ax
+    
+    push   6(%bp)
+    push   4(%bp)
+    call   on_current_frame
+    addw   $4, %sp
+
+    cmpw   $TRUE, %ax
+    jne    1f
+
+    movw   $TRUE, (frame_gripped)
+    movw   4(%bp), %ax
+    movw   %ax,    (on_frame_mouse_x)
+    movw   6(%bp), %ax
+    movw   %ax,    (on_frame_mouse_y)
+
+1:
+    pop    %ax
+END_PROC
+
+
+#void left_button_released(x, y)
+left_button_released:
+
+START_PROC
+    
+    movw   $FALSE, (frame_gripped)
+
+END_PROC
+
+
+#void rigth_button_pressed(x, y)
+rigth_button_pressed:
+
+START_PROC
+    push   %ax
+    
+    push   6(%bp)
+    push   4(%bp)
+    call   on_current_circle
+    addw   $4, %sp
+    
+    cmpw   $TRUE, %ax
+    jne    1f
+
+    call   toggle_circle_color
+    call   draw_current_circle
+
+    jmp    2f
+
+1:  push   6(%bp)
+    push   4(%bp)
+    call   on_current_frame
+    addw   $4, %sp
+    
+    cmpw   $TRUE, %ax
     jne    2f
 
     call   toggle_frame_color
     call   draw_current_frame
 2:
+    pop    %ax
+END_PROC
 
-    retf
+
+#bool on_current_frame(x, y)
+on_current_frame:
+    
+START_PROC
+
+    push   (frame_width)
+    push   (frame_end_y)
+    push   (frame_end_x)
+    push   (frame_y)
+    push   (frame_x)
+    push   6(%bp)
+    push   4(%bp)
+    call   on_frame
+    addw   $14, %sp
+
+END_PROC
+
+
+#bool on_current_circle(x, y)
+on_current_circle:
+
+START_PROC
+
+    push   (circle_radius)
+    push   (circle_y)
+    push   (circle_x)
+    push   6(%bp)
+    push   4(%bp)
+    call   on_circle
+    addw   $10, %sp
+
+END_PROC
+
 
 #void draw_current_frame()
 draw_current_frame:
@@ -83,12 +235,31 @@ START_PROC
     push   (frame_y)
     push   (frame_x)
     call   draw_frame
+    addw   $12, %sp
 
     call   show_cursor
 
 END_PROC
 
 
+#void draw_current_circle()
+draw_current_circle:
+
+START_PROC
+
+    call   hide_cursor
+
+    push   (circle_color)
+    push   (circle_radius)
+    push   (circle_y)
+    push   (circle_x)
+    call   draw_circle
+    addw   $8, %sp
+
+    call   show_cursor
+
+
+END_PROC
 #void toggle_frame_color()
 toggle_frame_color:
 
@@ -135,15 +306,43 @@ START_PROC
 END_PROC
 
 
-.section .data
-    frame_color:  .word 0x0a
-    circle_color: .word 0x05
-    frame_width:  .word 10
+#word sub_abs(x, y)
+sub_abs:
 
-    frame_x:     .word 10
-    frame_y:     .word 10
-    frame_end_x: .word 100
-    frame_end_y: .word 100
+START_PROC
+
+    movw   4(%bp), %ax
+
+    cmpw   6(%bp), %ax
+    jng    1f
+
+    subw   6(%bp), %ax
+    jmp    2f
+
+1:  movw   6(%bp), %ax
+    subw   4(%bp), %ax
+2:  
+
+END_PROC
+
+
+.section .data
+    frame_color:   .word 0x0a
+    frame_width:   .word 10
+    frame_x:       .word 10
+    frame_y:       .word 10
+    frame_end_x:   .word 100
+    frame_end_y:   .word 200
+
+    circle_color:  .word 0x0c
+    circle_radius: .word 15
+    circle_x:      .word 300
+    circle_y:      .word 300
+
+    frame_gripped: .word FALSE
+
+    on_frame_mouse_x: .word 0
+    on_frame_mouse_y: .word 0
 
 .include "../libdos/iofunc.S"
 

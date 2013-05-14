@@ -16,6 +16,7 @@
 .globl hide_cursor
 .globl wait_char
 .globl on_frame
+.globl on_circle
 
 .section .text
 
@@ -209,6 +210,7 @@ END_PROC
 draw_frame:
 
 START_PROC
+    subw   $0x04, %sp
     push   %ax
     push   %bx
     push   %cx
@@ -221,7 +223,6 @@ START_PROC
     movw   0xa(%bp), %dx
     movw   0xc(%bp), %di
 
-    subw   $0x04, %sp
 
     movw   %cx, -2(%bp)
     movw   %dx, -4(%bp)
@@ -268,13 +269,13 @@ START_PROC
     call   draw_vertical_stripe
     addw   $0x0a, %sp
 
-    addw   $0x04, %sp
 
     pop    %di
     pop    %dx
     pop    %cx
     pop    %bx
     pop    %ax
+    addw   $0x04, %sp
 END_PROC
 
 
@@ -553,6 +554,33 @@ START_PROC
 END_PROC
 
 
+#bool on_circle(x, y, circle_x, circle_y, radius)
+on_circle:
+
+START_PROC
+    push   %bx
+    push   %cx
+    push   %dx
+    push   %di
+
+    movw   $FALSE,  %ax
+
+    movw   4(%bp),  %bx
+    addw   6(%bp),  %bx
+
+    andw   $0xf, %bx
+    cmpw   $0xf, %bx
+    jne    1f
+
+    movw   $TRUE, %ax
+1:
+    pop    %di
+    pop    %dx
+    pop    %cx
+    pop    %bx
+END_PROC
+
+
 #void install_cursor()
 install_cursor:
     push   %ax
@@ -612,4 +640,6 @@ wait_char:
 
 .section .bss
     .lcomm old_mode, 1
+
+.include "../libdos/iofunc.S"
 

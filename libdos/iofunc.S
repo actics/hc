@@ -74,6 +74,18 @@ print_char_hex:
 
 # -----------------------------------------------------
 
+# функция печатающая hex представление регистра %ax
+# void __fastcall print_word_hex(word target_word)#
+print_word_hex:
+    xchgb %ah, %al
+    call  print_char_hex
+    xchgb %ah, %al
+    call  print_char_hex
+    ret
+
+
+# -----------------------------------------------------
+
 
 .section .data
 
