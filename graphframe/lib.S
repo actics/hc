@@ -631,12 +631,7 @@ wait_char:
 
 .section .data
     video_page: .byte 0x00
-
     video_seg:  .word 0xA000
-    vwidth:     .word 640
-    vheight:    .word 480
-
-    msg: .ascii "OLO!\n$"
 
 .section .bss
     .lcomm old_mode, 1

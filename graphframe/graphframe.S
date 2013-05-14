@@ -92,20 +92,29 @@ START_PROC
     movw   (on_frame_mouse_x), %bx
     movw   (on_frame_mouse_y), %cx
 
-    movw   4(%bp), %ax
-    subw   %ax, %bx
-    movw   6(%bp), %ax
-    subw   %ax, %cx
+    subw   4(%bp), %bx
+    subw   6(%bp), %cx
 
     movw   (frame_color), %ax
     movw   $0x00, (frame_color)
     call   draw_current_frame
     movw   %ax, (frame_color)
+
     subw   %bx, (frame_x)
     subw   %cx, (frame_y)
     subw   %bx, (frame_end_x)
     subw   %cx, (frame_end_y)
-    call   draw_current_frame
+
+    call   in_screen
+    cmpw   $TRUE, %ax
+    je     2f
+
+    addw   %bx, (frame_x)
+    addw   %cx, (frame_y)
+    addw   %bx, (frame_end_x)
+    addw   %cx, (frame_end_y)
+
+2:  call   draw_current_frame
     movw   4(%bp), %ax
     movw   %ax, (on_frame_mouse_x)
     movw   6(%bp), %ax
@@ -306,27 +315,36 @@ START_PROC
 END_PROC
 
 
-#word sub_abs(x, y)
-sub_abs:
+#bool in_screen()
+in_screen:
 
 START_PROC
 
-    movw   4(%bp), %ax
+    movw   $FALSE, %ax
 
-    cmpw   6(%bp), %ax
-    jng    1f
+    cmpw   $0, (frame_x)
+    jl     1f
 
-    subw   6(%bp), %ax
-    jmp    2f
+    cmpw   $0, (frame_y)
+    jl     1f
 
-1:  movw   6(%bp), %ax
-    subw   4(%bp), %ax
-2:  
+    cmpw   $SCREEN_WIDTH, (frame_end_x)
+    jae    1f
+
+    cmpw   $SCREEN_HEIGTH, (frame_end_y)
+    jae    1f
+
+    movw   $TRUE, %ax
+1:
 
 END_PROC
 
 
+.set SCREEN_WIDTH,  640
+.set SCREEN_HEIGTH, 480
+
 .section .data
+
     frame_color:   .word 0x0a
     frame_width:   .word 10
     frame_x:       .word 10
