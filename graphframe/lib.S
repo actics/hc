@@ -15,6 +15,7 @@
 .globl show_cursor
 .globl hide_cursor
 .globl wait_char
+.globl on_frame
 
 .section .text
 
@@ -58,16 +59,12 @@ START_PROC
     push   %cx
     push   %dx
     
-#    call   hide_cursor
-
     movw   0x4(%bp),     %cx
     movw   0x6(%bp),     %dx
     movb   0x8(%bp),     %al
     movb   (video_page), %bh
     movb   $BIOS_WRITE_GRAPH_DOT, %ah
     int    $BIOS_VIDEO_CALL
-
-#    call   show_cursor
 
     pop    %dx
     pop    %cx
@@ -281,33 +278,278 @@ START_PROC
 END_PROC
 
 
-#void draw_circle(x, y, rad, color)
+#void draw_circle(x, y, radius, color)
 draw_circle:
 
 START_PROC
     push   %ax
     push   %bx
     push   %cx
+    push   %dx
+    push   %di
+    push   %si 
 
-    movw   4(%bp), %ax
-    movw   6(%bp), %bx
+    movw   $1,     %bx
+    xorw   %cx,    %cx
     movw   8(%bp), %cx
-
-    subw   %cx, %ax
-    subw   %cx, %bx
-    shlw   %cx
-
-    push   0xa(%bp)
-    push   %cx
-    push   %cx
-    push   %bx
+    subw   %cx,    %bx 
+    movw   $1,     %si 
+    movw   $-2,    %ax
+    imulw  %cx 
+    movw   %ax,    %di 
+    movw   $0,     %cx 
+    xorw   %dx,    %dx
+    movw   8(%bp), %dx       
+    
+    push   4(%bp)       
+    movw   6(%bp), %ax       
+    addw   8(%bp), %ax
     push   %ax
-    call   draw_vertical_stripe
-    addw   $8, %sp
+    push   10(%bp)
+    call   draw_special_pixel
 
+    push   4(%bp)       
+    movw   6(%bp), %ax       
+    subw   8(%bp), %ax
+    push   %ax
+    push   10(%bp)
+    call   draw_special_pixel
+
+    movw   4(%bp), %ax       
+    addw   8(%bp), %ax
+    push   %ax
+    movw   4(%bp), %ax       
+    subw   8(%bp), %ax
+    push   %ax
+    push   6(%bp)       
+    push   10(%bp)
+    call   draw_special_line
+    
+1:  cmpw   $0,     %bx
+    jl     2f
+
+    decw   %dx 
+    addw   $2,     %di 
+    addw   %di,    %bx 
+
+2:  incw   %cx 
+    addw   $2,     %si 
+    addw   %si,    %bx 
+
+    movw   4(%bp), %ax       
+    addw   %cx,    %ax
+    push   %ax
+    movw   4(%bp), %ax       
+    subw   %cx,    %ax
+    push   %ax
+    movw   6(%bp), %ax       
+    addw   %dx,    %ax
+    push   %ax
+    push   10(%bp)
+    call   draw_special_line
+
+    movw   4(%bp), %ax       
+    addw   %cx,    %ax
+    push   %ax
+    movw   4(%bp), %ax       
+    subw   %cx,    %ax
+    push   %ax
+    movw   6(%bp), %ax       
+    subw   %dx,    %ax
+    push   %ax
+    push   10(%bp)
+    call   draw_special_line
+
+    movw   4(%bp), %ax       
+    addw   %dx,    %ax
+    push   %ax
+    movw   4(%bp), %ax       
+    subw   %dx,    %ax
+    push   %ax
+    movw   6(%bp), %ax       
+    addw   %cx,    %ax
+    push   %ax
+    push   10(%bp)
+    call   draw_special_line
+
+    movw   4(%bp), %ax       
+    addw   %dx,    %ax
+    push   %ax
+    movw   4(%bp), %ax       
+    subw   %dx,    %ax
+    push   %ax
+    movw   6(%bp), %ax       
+    subw   %cx,    %ax
+    push   %ax
+    push   10(%bp)
+    call   draw_special_line
+    
+    cmpw   %dx,    %cx
+    jl     1b
+
+    pop    %si
+    pop    %di
+    pop    %dx
     pop    %cx
     pop    %bx
     pop    %ax
+END_PROC
+
+
+#void draw_special_pixel(x, y, color)
+draw_special_pixel:
+
+START_PROC
+    
+    push   4(%bp)
+    push   6(%bp)
+    push   8(%bp)
+    call   draw_pixel
+    addw   $6, %sp
+
+    movw   %bp, %sp
+    pop    %bp
+    ret    $6
+
+
+#void draw_special_line(x_to, x_from, y, color)
+draw_special_line:
+
+START_PROC
+    push   %ax
+
+    movw   10(%bp), %ax
+    subw   8(%bp), %ax
+    incw   %ax
+
+    push   4(%bp)
+    push   %ax
+    push   6(%bp)
+    push   8(%bp)
+    call   draw_horizontal_line
+    addw   $8, %sp
+    
+    pop    %ax
+    movw   %bp, %sp
+    pop    %bp
+    ret    $8
+
+
+#bool on_frame(x, y, start_x, start_y, end_x, end_y, width)
+on_frame:
+
+START_PROC
+    subw   $20, %sp
+
+    push   %bx
+    push   %cx
+
+    movw   16(%bp), %bx # width
+
+    movw   4(%bp), %ax
+    movw   %ax,    -2(%bp)  # x
+    movw   6(%bp), %ax
+    movw   %ax,    -4(%bp)  # y
+    movw   8(%bp), %ax
+    movw   %ax,    -6(%bp)  # sx
+    movw   10(%bp), %ax
+    movw   %ax,    -8(%bp)  # sy
+    movw   12(%bp), %ax
+    movw   %ax,    -10(%bp) # ex
+    movw   14(%bp), %ax
+    movw   %ax,    -12(%bp) # ey
+
+    movw   -6(%bp), %ax
+    addw   %bx, %ax
+    movw   %ax,    -14(%bp) # sx + w
+    movw   -8(%bp), %ax
+    addw   %bx, %ax
+    movw   %ax,    -16(%bp) # sy + w
+    movw   -10(%bp), %ax
+    subw   %bx, %ax
+    movw   %ax,    -18(%bp) # ex - w
+    movw   -12(%bp), %ax
+    subw   %bx, %ax
+    movw   %ax,    -20(%bp) # ey - w
+   
+    movw   $FALSE, %ax
+
+    movw   -4(%bp), %bx # y
+
+    movw   -8(%bp), %cx # sy
+    cmpw   %cx, %bx     # y < sy
+    jb     1f
+
+    movw   -16(%bp), %cx # sy + w
+    cmpw   %cx, %bx      # y > sy + w
+    jg     1f
+
+    jmp    2f
+
+1:  movw   -12(%bp), %cx # ey
+    cmpw   %cx, %bx      # y > ey
+    jg     3f
+
+    movw   -20(%bp), %cx # ey - w
+    cmpw   %cx, %bx      # y < ey - w
+    jb     3f
+
+    jmp    2f
+
+2:  movw   -2(%bp), %bx # x
+
+    movw   -6(%bp), %cx # sx
+    cmpw   %cx, %bx     # x < sx
+    jb     3f
+
+    movw   -10(%bp), %cx # ex
+    cmpw   %cx, %bx      # x > ex
+    jg     3f
+
+    movw   $TRUE, %ax
+    jmp    4f
+
+3:  movw   -2(%bp), %bx # x
+
+    movw   -6(%bp), %cx # sx
+    cmpw   %cx, %bx     # x < sx
+    jb     1f
+
+    movw   -14(%bp), %cx # sx + w
+    cmpw   %cx, %bx      # x > sx + w
+    jg     1f
+
+    jmp    2f
+
+1:  movw   -10(%bp), %cx # ex
+    cmpw   %cx, %bx      # x > ex
+    jg     3f
+
+    movw   -18(%bp), %cx # ex - w
+    cmpw   %cx, %bx      # x < ex - w
+    jb     3f
+
+    jmp    2f
+
+2:  movw   -4(%bp), %bx # y
+
+    movw   -8(%bp), %cx # sy
+    cmpw   %cx, %bx     # y < sy
+    jb     3f
+
+    movw   -12(%bp), %cx # ey
+    cmpw   %cx, %bx      # y > ey
+    jg     3f
+
+    movw   $TRUE, %ax
+    jmp    4f
+
+3:
+4:
+    pop    %cx
+    pop    %bx
+
+    addw   $20, %sp
 END_PROC
 
 
