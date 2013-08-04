@@ -37,10 +37,7 @@ get_number_from_argv:
 print_char_hex:
 
     # сохранение состояния системы
-    push  %ax
-    push  %bx
-    push  %cx
-    push  %dx
+    pusha
     
     # сохраняем адрес таблицы hex символов для использования с xlat
     movw  $Liofunc_hex_symbol, %bx
@@ -64,10 +61,7 @@ print_char_hex:
     int   $DOS_SYSCALL
 
     # восстанавливаем состояние системы
-    pop   %dx
-    pop   %cx
-    pop   %bx
-    pop   %ax
+    popa
 
     ret
 
